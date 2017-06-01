@@ -2,33 +2,30 @@
  * Created by D062299 on 10.05.2017.
  */
 
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestTemplate;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 public class BlackboardClient {
 
-    private static RestTemplate restTemplate;
-    private static String apiUrl = null;
-    private static Blackboard board;
-    private static BlackboardList list;
+    private static String serverAddress = null;
+    private static URL apiUrl = null;
+    private static String boardname = null;
+    private static String message = null;
+    private static StringBuilder result;
+    private static String mode = null;
 
     public static void main(String[] args) throws IOException {
 
         int i = 0;
         String argument;
-        String serverAddress = null;
         boolean exitFlag = false;
-        String boardname = null;
-        String message = null;
-        String mode = null;
+
 
         if (args.length == 0) {
             showHelp();
@@ -48,7 +45,7 @@ public class BlackboardClient {
                 if ((i < args.length) && !args[i].startsWith("-")) {
                     boardname = args[i];
                     if (mode == null) {
-                        mode = "create";
+                        mode = "CREATE";
                     } else {
                         System.err.println("Only one action can be performed at a time.");
                         exitFlag = true;
@@ -62,7 +59,7 @@ public class BlackboardClient {
                     boardname = args[i];
                     message = args[++i];
                     if (mode == null) {
-                        mode = "display";
+                        mode = "DISPLAY";
                     } else {
                         System.err.println("Only one action can be performed at a time.");
                         exitFlag = true;
@@ -75,7 +72,7 @@ public class BlackboardClient {
                 if ((i < args.length) && !args[i].startsWith("-")) {
                     boardname = args[i];
                     if (mode == null) {
-                        mode = "read";
+                        mode = "READ";
                     } else {
                         System.err.println("Only one action can be performed at a time.");
                         exitFlag = true;
@@ -88,7 +85,7 @@ public class BlackboardClient {
                 if ((i < args.length) && !args[i].startsWith("-")) {
                     boardname = args[i];
                     if (mode == null) {
-                        mode = "clear";
+                        mode = "CLEAR";
                     } else {
                         System.err.println("Only one action can be performed at a time.");
                         exitFlag = true;
@@ -101,7 +98,7 @@ public class BlackboardClient {
                 if ((i < args.length) && !args[i].startsWith("-")) {
                     boardname = args[i];
                     if (mode == null) {
-                        mode = "delete";
+                        mode = "DELETE";
                     } else {
                         System.err.println("Only one action can be performed at a time.");
                         exitFlag = true;
@@ -115,7 +112,7 @@ public class BlackboardClient {
                 if ((i < args.length) && !args[i].startsWith("-")) {
                     boardname = args[i];
                     if (mode == null) {
-                        mode = "status";
+                        mode = "STATUS";
                     } else {
                         System.err.println("Only one action can be performed at a time.");
                         exitFlag = true;
@@ -125,9 +122,9 @@ public class BlackboardClient {
                     exitFlag = true;
                 }
 
-                } else if (argument.equals("--show") || argument.equals("-sh")) {
+            } else if (argument.equals("--show") || argument.equals("-sh")) {
                 if (mode == null) {
-                    mode = "show";
+                    mode = "SHOW";
                 } else {
                     System.err.println("Only one action can be performed at a time.");
                     exitFlag = true;
@@ -147,8 +144,8 @@ public class BlackboardClient {
         if (mode == null) {
             System.err.println("No action specified.");
             exitFlag = true;
-        } else if (!(mode.equals("create") || mode.equals("display") || mode.equals("read") || mode.equals("clear")
-                || mode.equals("delete") || mode.equals("status") || mode.equals("show"))) {
+        } else if (!(mode.equals("CREATE") || mode.equals("DISPLAY") || mode.equals("READ") || mode.equals("CLEAR")
+                || mode.equals("DELETE") || mode.equals("STATUS") || mode.equals("SHOW"))) {
             System.out.println("Invalid action. --h for help.");
             exitFlag = true;
         }
@@ -165,77 +162,77 @@ public class BlackboardClient {
             System.out.println("\nAccessing server...");
         }
 
-        if (mode.equals("create")) {
-            createBoard(boardname);
-        } else if (mode.equals("display")) {
-            displayMessage(boardname, message);
-        } else if (mode.equals("read")) {
-            readMessage(boardname);
-        } else if (mode.equals("clear")) {
-            clearMessage(boardname);
-        } else if (mode.equals("delete")) {
-            deleteBoard(boardname);
-        } else if (mode.equals("status")) {
-            displayBoardStatus(boardname);
-        } else if (mode.equals("show")) {
-            showBoards();
+        //HTTP request
+        sendRequest();
+
+    }
+
+    public static void sendRequest() {
+        //get target URL
+        try {
+            switch (mode) {
+                case "CREATE":
+                    apiUrl = new URL(serverAddress + "/create_blackboard?name=" + boardname);
+                    break;
+                case "DISPLAY":
+                    apiUrl = new URL(serverAddress + "/display_blackboard?name=" + boardname + "&message=" + message);
+                    break;
+                case "READ":
+                    apiUrl = new URL(serverAddress + "/read_blackboard?name=" + boardname);
+                    break;
+                case "CLEAR":
+                    apiUrl = new URL(serverAddress + "/clear_blackboard?name=" + boardname);
+                    break;
+                case "DELETE":
+                    apiUrl = new URL(serverAddress + "/delete_blackboard?name=" + boardname);
+                    break;
+                case "STATUS":
+                    apiUrl = new URL(serverAddress + "/get_blackboard_status?name=" + boardname);
+                    break;
+                case "SHOW":
+                    apiUrl = new URL(serverAddress + "/show_blackboards");
+                    break;
+                default:
+                    System.err.println("Invalid action.");
+            }
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
         }
-        restTemplate = new RestTemplate();
-    }
 
+        try {
+            //Create connection
+            HttpURLConnection conn = (HttpURLConnection) apiUrl.openConnection();
+            result = new StringBuilder();
+            conn.setRequestMethod("GET");
+            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String singleLine;
+            while ((singleLine = reader.readLine()) != null) {
+                result.append(singleLine);
+            }
+            reader.close();
+            printResult(result);
+        } catch (Exception e) {
+            e.printStackTrace();
 
-
-    public static void createBoard(String boardname){
-        apiUrl = "https://dhbw-blackboard.herokuapp.com/blackboard/create_blackboard?name=" + boardname;
-        board = restTemplate.getForObject(apiUrl, Blackboard.class);
-    }
-
-    public static void displayMessage(String boardname, String message){
-        apiUrl = "https://dhbw-blackboard.herokuapp.com/blackboard/display_blackboard?name=" + boardname + "&message=" + message;
-        board = restTemplate.getForObject(apiUrl, Blackboard.class);
-    }
-
-    public static void readMessage(String boardname){
-        apiUrl = "https://dhbw-blackboard.herokuapp.com/blackboard/read_blackboard?name=" + boardname;
-        board = restTemplate.getForObject(apiUrl, Blackboard.class);
-    }
-
-    public static void clearMessage(String boardname){
-        apiUrl = "https://dhbw-blackboard.herokuapp.com/blackboard/clear_blackboard?name=" + boardname;
-        board = restTemplate.getForObject(apiUrl, Blackboard.class);
-    }
-
-    public static void deleteBoard(String boardname){
-        apiUrl = "https://dhbw-blackboard.herokuapp.com/blackboard/delete_blackboard?name=" + boardname;
-        board = restTemplate.getForObject(apiUrl, Blackboard.class);
-    }
-
-    public static void displayBoardStatus(String boardname){
-        apiUrl = "https://dhbw-blackboard.herokuapp.com/blackboard/get_blackboard_status?name=" + boardname;
-        board = restTemplate.getForObject(apiUrl, Blackboard.class);
-    }
-
-    public static void showBoards(){
-        apiUrl = "https://dhbw-blackboard.herokuapp.com/blackboard/show_blackboards";
-        String result = restTemplate.getForObject(apiUrl, String.class);
-
-        System.out.println(result);
-        /*ResponseEntity<List<Blackboard>> blackboardResponse = restTemplate.exchange(apiUrl,
-                HttpMethod.GET, null, new ParameterizedTypeReference<List<Blackboard>>() {
-                });
-        List<Blackboard> blackboardList = blackboardResponse.getBody();
-
-        Iterator<Blackboard> blackboardIterator = blackboardList.iterator();
-        while (blackboardIterator.hasNext()) {
-            System.out.println(blackboardIterator.next().toString());
         }
-                /*restTemplate.getForEntity(apiUrl, Blackboard.class);
-        List<Blackboard> boardList = blackboardResponse.getBody();
-        MediaType contentType = responseEntity.getHeaders().getContentType();
-        HttpStatus statusCode = responseEntity.getStatusCode();*/
+    }
 
-
-        //list = restTemplate.getForObject(apiUrl, BlackboardList.class);
+    public static void printResult(StringBuilder input) throws ParseException {
+        switch (mode) {
+            case "SHOW":
+                System.out.println("The following blackboards were returned:");
+                JSONParser parser = new JSONParser();
+                JSONArray content = (JSONArray) parser.parse(input.toString());
+                JSONObject jsonBlackboard = new JSONObject();
+                for (int i = 0; i < content.size(); i++) {
+                    jsonBlackboard = (JSONObject) content.get(i);
+                    System.out.println(jsonBlackboard.get("name"));
+                    System.out.println(jsonBlackboard.get("message")+"\n");
+                }
+                break;
+            default:
+                System.out.println(input.toString());
+        }
     }
 
     public static void showHelp() {
