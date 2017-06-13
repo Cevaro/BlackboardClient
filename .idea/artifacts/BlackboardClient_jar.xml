@@ -1,0 +1,10 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="BlackboardClient:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/BlackboardClient_jar</output-path>
+    <root id="archive" name="BlackboardClient.jar">
+      <element id="module-output" name="BlackboardClient" />
+      <element id="library" level="project" name="Maven: com.googlecode.json-simple:json-simple:1.1" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/googlecode/json-simple/json-simple/1.1/json-simple-1.1.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

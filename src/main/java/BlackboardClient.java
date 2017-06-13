@@ -1,4 +1,4 @@
-/**
+/*
  * Created by D062299 on 10.05.2017.
  */
 
@@ -15,7 +15,6 @@ public class BlackboardClient {
     private static final String defaultServerAddress = "https://dhbw-blackboard.herokuapp.com/blackboard";
 
     private static String serverAddress = null;
-    private static URL apiUrl = null;
     private static String boardname = null;
     private static String message = null;
     private static StringBuilder result;
@@ -28,9 +27,9 @@ public class BlackboardClient {
         boolean exitFlag = false;
 
 
-/*************************************************************************************************************
+/*:***********************************************************************************************************
  *                             Argument determination                                                        *
- *************************************************************************************************************/
+ ***********************************************************************************************************:*/
         //if there are no arguments we can cancel early and print the help text
         if (args.length == 0) {
             showHelp();
@@ -141,9 +140,9 @@ public class BlackboardClient {
             }
         }
 
-/*************************************************************************************************************
+/*:***********************************************************************************************************
  *                             Argument evaluation                                                           *
- *************************************************************************************************************/
+ **********************************************************************************************************:*/
         //if no server address is specified: choose the default server address
         if (serverAddress == null) {
             serverAddress = defaultServerAddress;
@@ -163,7 +162,7 @@ public class BlackboardClient {
         System.out.println("Boardname: " + boardname);
         System.out.println("Message: " + message);
 
-        if (exitFlag == true) {
+        if (exitFlag) {
             System.out.println("Invalid input format. --h for help.");
             System.exit(0);
         } else {
@@ -177,15 +176,15 @@ public class BlackboardClient {
 
     private static void startRequest() throws IOException {
 
-/*************************************************************************************************************
+/*:***********************************************************************************************************
  *                             Create connection                                                             *
- *************************************************************************************************************/
+ ***********************************************************************************************************:*/
         //get target URL and create connection
         try {
             switch (mode) {
                 case "CREATE":
-                    apiUrl = new URL(serverAddress + "/create_blackboard");
-                    sendPOSTRequest(apiUrl);
+                    URL apiUrl = new URL(serverAddress + "/create_blackboard");
+                    sendPOSTRequest(apiUrl, boardname);
                     break;
                 case "DISPLAY":
                     apiUrl = new URL(serverAddress + "/display_blackboard/" + boardname);
@@ -220,34 +219,26 @@ public class BlackboardClient {
 
     }
 
-    private static void sendPOSTRequest(URL url) {
+    private static void sendPOSTRequest(URL url, String body) {
         try {
-            String body = URLEncoder.encode(boardname, "UTF-8");
-
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("POST");
             connection.setDoInput(true);
             connection.setDoOutput(true);
             connection.setUseCaches(false);
-            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            connection.setRequestProperty("Content-Type", "application/raw");
             connection.setRequestProperty("Content-Length", String.valueOf(body.length()));
 
             OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream());
             writer.write(body);
             writer.flush();
 
-
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(connection.getInputStream()));
-
+            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
             for (String line; (line = reader.readLine()) != null; ) {
                 System.out.println(line);
             }
-
             writer.close();
             reader.close();
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
         } catch (ProtocolException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -255,26 +246,21 @@ public class BlackboardClient {
         }
     }
 
-    private static void sendPUTRequest(URL url, String msg) {
+    private static void sendPUTRequest(URL url, String body) {
         try {
-            String body = URLEncoder.encode(msg, "UTF-8");
-
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("PUT");
             connection.setDoInput(true);
             connection.setDoOutput(true);
             connection.setUseCaches(false);
-            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            connection.setRequestProperty("Content-Type", "application/raw");
             connection.setRequestProperty("Content-Length", String.valueOf(body.length()));
 
             OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream());
             writer.write(body);
             writer.flush();
 
-
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(connection.getInputStream()));
-
+            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
             for (String line; (line = reader.readLine()) != null; ) {
                 System.out.println(line);
             }
