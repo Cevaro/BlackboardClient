@@ -3,21 +3,15 @@
  */
 
 import java.io.*;
-import java.net.*;
-
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
+import java.util.StringJoiner;
 
 public class BlackboardClient {
 
     private static final String defaultServerAddress = "https://dhbw-blackboard.herokuapp.com/blackboard";
 
     private static String serverAddress = null;
-    private static String boardname = null;
-    private static String message = null;
-    private static StringBuilder result;
+    private static String boardname = "";
+    private static String message = "";
     private static String mode = null;
 
     public static void main(String[] args) throws IOException {
@@ -32,7 +26,7 @@ public class BlackboardClient {
  ***********************************************************************************************************:*/
         //if there are no arguments we can cancel early and print the help text
         if (args.length == 0) {
-            showHelp();
+            printHelp();
             System.exit(0);
         }
 
@@ -47,7 +41,11 @@ public class BlackboardClient {
                 }
             } else if (argument.equals("--create") || argument.equals("-c")) {
                 if ((argCounter < args.length) && !args[argCounter].startsWith("-")) {
-                    boardname = args[argCounter];
+                    StringJoiner joiner = new StringJoiner(" ");
+                    while (argCounter < args.length && !args[argCounter].startsWith("-")) {
+                        joiner.add(args[argCounter++]);
+                    }
+                    boardname = joiner.toString();
                     if (mode == null) {
                         mode = "CREATE";
                     } else {
@@ -59,9 +57,12 @@ public class BlackboardClient {
                     exitFlag = true;
                 }
             } else if (argument.equals("--display") || argument.equals("-d")) {
-                if ((argCounter < (args.length + 1)) && !args[argCounter].startsWith("-") && !args[(argCounter + 1)].startsWith("-")) {
-                    boardname = args[argCounter];
-                    message = args[++argCounter];
+                if ((argCounter < (args.length + 1)) && !args[argCounter].startsWith("-")) {
+                    StringJoiner joiner = new StringJoiner(" ");
+                    while (argCounter < args.length && !args[argCounter].startsWith("-")) {
+                        joiner.add(args[argCounter++]);
+                    }
+                    boardname = joiner.toString();
                     if (mode == null) {
                         mode = "DISPLAY";
                     } else {
@@ -72,9 +73,24 @@ public class BlackboardClient {
                     System.err.println("Board name not specified.");
                     exitFlag = true;
                 }
+            } else if (argument.equals("--message") || argument.equals("-m")) {
+                if ((argCounter < (args.length + 1)) && !args[argCounter].startsWith("-")) {
+                    StringJoiner joiner = new StringJoiner(" ");
+                    while (argCounter < args.length && !args[argCounter].startsWith("-")) {
+                        joiner.add(args[argCounter++]);
+                    }
+                    message = joiner.toString();
+                } else {
+                    System.err.println("Message not specified.");
+                    exitFlag = true;
+                }
             } else if (argument.equals("--read") || argument.equals("-r")) {
                 if ((argCounter < args.length) && !args[argCounter].startsWith("-")) {
-                    boardname = args[argCounter];
+                    StringJoiner joiner = new StringJoiner(" ");
+                    while (argCounter < args.length && !args[argCounter].startsWith("-")) {
+                        joiner.add(args[argCounter++]);
+                    }
+                    boardname = joiner.toString();
                     if (mode == null) {
                         mode = "READ";
                     } else {
@@ -87,7 +103,11 @@ public class BlackboardClient {
                 }
             } else if (argument.equals("--clear") || argument.equals("-cl")) {
                 if ((argCounter < args.length) && !args[argCounter].startsWith("-")) {
-                    boardname = args[argCounter];
+                    StringJoiner joiner = new StringJoiner(" ");
+                    while (argCounter < args.length && !args[argCounter].startsWith("-")) {
+                        joiner.add(args[argCounter++]);
+                    }
+                    boardname = joiner.toString();
                     if (mode == null) {
                         mode = "CLEAR";
                     } else {
@@ -100,7 +120,11 @@ public class BlackboardClient {
                 }
             } else if (argument.equals("--delete") || argument.equals("-de")) {
                 if ((argCounter < args.length) && !args[argCounter].startsWith("-")) {
-                    boardname = args[argCounter];
+                    StringJoiner joiner = new StringJoiner(" ");
+                    while (argCounter < args.length && !args[argCounter].startsWith("-")) {
+                        joiner.add(args[argCounter++]);
+                    }
+                    boardname = joiner.toString();
                     if (mode == null) {
                         mode = "DELETE";
                     } else {
@@ -114,7 +138,11 @@ public class BlackboardClient {
 
             } else if (argument.equals("--status") || argument.equals("-st")) {
                 if ((argCounter < args.length) && !args[argCounter].startsWith("-")) {
-                    boardname = args[argCounter];
+                    StringJoiner joiner = new StringJoiner(" ");
+                    while (argCounter < args.length && !args[argCounter].startsWith("-")) {
+                        joiner.add(args[argCounter++]);
+                    }
+                    boardname = joiner.toString();
                     if (mode == null) {
                         mode = "STATUS";
                     } else {
@@ -127,6 +155,7 @@ public class BlackboardClient {
                 }
 
             } else if (argument.equals("--show") || argument.equals("-sh")) {
+                argCounter++;
                 if (mode == null) {
                     mode = "SHOW";
                 } else {
@@ -136,7 +165,7 @@ public class BlackboardClient {
 
             } else if (argument.equals("--help") || argument.equals("--h") || argument.equals("-help") ||
                     argument.equals("-h")) {
-                showHelp();
+                printHelp();
             }
         }
 
@@ -163,193 +192,30 @@ public class BlackboardClient {
         System.out.println("Message: " + message);
 
         if (exitFlag) {
-            System.out.println("Invalid input format. --h for help.");
+            System.out.println("\nInvalid input format. --h for help.");
+            System.exit(0);
+        }
+        if (boardname.length() > 64) {
+            System.out.println("\nThe given boardname exceeds the limit of 64 characters.");
+            System.exit(0);
+        }
+        if (message.length() > 255) {
+            System.out.println("\nThe given message exceeds the limit of 255 characters.");
             System.exit(0);
         } else {
             System.out.println("\nAccessing server...");
         }
 
+
         //HTTP request
-        startRequest();
+        HTTPRequestHelper.startRequest(mode, serverAddress, boardname, message);
 
     }
 
-    private static void startRequest() throws IOException {
-
-/*:***********************************************************************************************************
- *                             Create connection                                                             *
- ***********************************************************************************************************:*/
-        //get target URL and create connection
-        try {
-            switch (mode) {
-                case "CREATE":
-                    URL apiUrl = new URL(serverAddress + "/create_blackboard");
-                    sendPOSTRequest(apiUrl, boardname);
-                    break;
-                case "DISPLAY":
-                    apiUrl = new URL(serverAddress + "/display_blackboard/" + boardname);
-                    sendPUTRequest(apiUrl, message);
-                    break;
-                case "READ":
-                    apiUrl = new URL(serverAddress + "/read_blackboard/" + boardname);
-                    sendGETRequest(apiUrl);
-                    break;
-                case "CLEAR":
-                    apiUrl = new URL(serverAddress + "/clear_blackboard/" + boardname);
-                    sendPUTRequest(apiUrl);
-                    break;
-                case "DELETE":
-                    apiUrl = new URL(serverAddress + "/delete_blackboard/" + boardname);
-                    sendDELETERequest(apiUrl);
-                    break;
-                case "STATUS":
-                    apiUrl = new URL(serverAddress + "/" + "blackboard_status/" + boardname);
-                    sendGETRequest(apiUrl);
-                    break;
-                case "SHOW":
-                    apiUrl = new URL(serverAddress + "/show_blackboards");
-                    sendGETRequest(apiUrl);
-                    break;
-                default:
-                    System.err.println("Invalid action.");
-            }
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        }
-
-    }
-
-    private static void sendPOSTRequest(URL url, String body) {
-        try {
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setDoInput(true);
-            connection.setDoOutput(true);
-            connection.setUseCaches(false);
-            connection.setRequestProperty("Content-Type", "application/raw");
-            connection.setRequestProperty("Content-Length", String.valueOf(body.length()));
-
-            OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream());
-            writer.write(body);
-            writer.flush();
-
-            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-            for (String line; (line = reader.readLine()) != null; ) {
-                System.out.println(line);
-            }
-            writer.close();
-            reader.close();
-        } catch (ProtocolException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void sendPUTRequest(URL url, String body) {
-        try {
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("PUT");
-            connection.setDoInput(true);
-            connection.setDoOutput(true);
-            connection.setUseCaches(false);
-            connection.setRequestProperty("Content-Type", "application/raw");
-            connection.setRequestProperty("Content-Length", String.valueOf(body.length()));
-
-            OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream());
-            writer.write(body);
-            writer.flush();
-
-            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-            for (String line; (line = reader.readLine()) != null; ) {
-                System.out.println(line);
-            }
-
-            writer.close();
-            reader.close();
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        } catch (ProtocolException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void sendPUTRequest(URL url) {
-        try {
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            result = new StringBuilder();
-            conn.setRequestMethod("PUT");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            String singleLine;
-            while ((singleLine = reader.readLine()) != null) {
-                result.append(singleLine);
-            }
-            reader.close();
-            printResult(result);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void sendGETRequest(URL url) {
-        try {
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            result = new StringBuilder();
-            conn.setRequestMethod("GET");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            String singleLine;
-            while ((singleLine = reader.readLine()) != null) {
-                result.append(singleLine);
-            }
-            reader.close();
-            printResult(result);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void sendDELETERequest(URL url) {
-        try {
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            result = new StringBuilder();
-            conn.setRequestMethod("DELETE");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            String singleLine;
-            while ((singleLine = reader.readLine()) != null) {
-                result.append(singleLine);
-            }
-            reader.close();
-            printResult(result);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    private static void printResult(StringBuilder input) throws ParseException {
-        switch (mode) {
-            case "SHOW":
-                System.out.println("The following blackboards were returned:");
-                JSONParser parser = new JSONParser();
-                JSONArray content = (JSONArray) parser.parse(input.toString());
-                JSONObject jsonBlackboard = new JSONObject();
-                for (int i = 0; i < content.size(); i++) {
-                    jsonBlackboard = (JSONObject) content.get(i);
-                    System.out.println(jsonBlackboard.get("name"));
-                    System.out.println(jsonBlackboard.get("message") + "\n");
-                }
-                break;
-            default:
-                System.out.println(input.toString());
-        }
-    }
-
-    private static void showHelp() {
+    private static void printHelp() {
         System.out.println("Usage:");
         System.out.println("BlackboardClient [--server <address>] --create <boardname>");
-        System.out.println("BlackboardClient [--server <address>] --display <boardname> <message>");
+        System.out.println("BlackboardClient [--server <address>] --display <boardname> --message <message>");
         System.out.println("BlackboardClient [--server <address>] --read <boardname>");
         System.out.println("BlackboardClient [--server <address>] --clear <boardname>");
         System.out.println("BlackboardClient [--server <address>] --delete <boardname>");
@@ -361,7 +227,8 @@ public class BlackboardClient {
         System.out.println("--help,-h: Display usage help");
         System.out.println("--server,-s <address>: Specify the target server with address <address>. If no server address is specified, the project's Heroku server will be used by default.");
         System.out.println("--create,-c <boardname>: Create a new blackboard with name <boardname>.");
-        System.out.println("--display,-d <boardname> <message>: Assign message <message> to board <boradname>");
+        System.out.println("--display,-d <boardname>: Specify a board <boradname> where a new message should be assigned");
+        System.out.println("--message,-m <message>: Assign message <message> to the specified board.");
         System.out.println("--read,-r <boardname>: Read the message of board <boardname>");
         System.out.println("--clear,-cl <boardname>: Delete the message of board <boardname>");
         System.out.println("--delete,-de <boardname>: Delete the entirety of board <boardname>");
