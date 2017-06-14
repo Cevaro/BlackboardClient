@@ -4,10 +4,7 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
-import java.net.URL;
+import java.net.*;
 
 /**
  * Created by D062299 on 03.06.2017.
@@ -69,20 +66,9 @@ public class HTTPRequestHelper {
             connection.setDoInput(true);
             connection.setDoOutput(true);
             connection.setUseCaches(false);
-            connection.setRequestProperty("Content-Type", "application/raw");
-            connection.setRequestProperty("Content-Length", String.valueOf(body.length()));
 
-            OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream());
-            writer.write(body);
-            writer.flush();
-
-            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-
-            for (String line; (line = reader.readLine()) != null; ) {
-                System.out.println(line);
-            }
-            writer.close();
-            reader.close();
+            writeOutput(connection, body);
+            readResponse(connection);
         } catch (ProtocolException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -97,20 +83,9 @@ public class HTTPRequestHelper {
             connection.setDoInput(true);
             connection.setDoOutput(true);
             connection.setUseCaches(false);
-            connection.setRequestProperty("Content-Type", "application/raw");
-            connection.setRequestProperty("Content-Length", String.valueOf(body.length()));
 
-            OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream());
-            writer.write(body);
-            writer.flush();
-
-            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-            for (String line; (line = reader.readLine()) != null; ) {
-                System.out.println(line);
-            }
-
-            writer.close();
-            reader.close();
+            writeOutput(connection, body);
+            readResponse(connection);
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         } catch (ProtocolException e) {
@@ -122,10 +97,20 @@ public class HTTPRequestHelper {
 
     private static void sendPUTRequest(URL url) {
         try {
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            BufferedReader reader;
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("PUT");
+            connection.setDoInput(true);
+            connection.setDoOutput(true);
+            connection.setUseCaches(false);
             result = new StringBuilder();
-            conn.setRequestMethod("PUT");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+
+            try{
+                reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            } catch (IOException e) {
+                reader = new BufferedReader(new InputStreamReader(connection.getErrorStream()));
+            }
+
             String singleLine;
             while ((singleLine = reader.readLine()) != null) {
                 result.append(singleLine);
@@ -139,10 +124,20 @@ public class HTTPRequestHelper {
 
     private static void sendGETRequest(URL url) {
         try {
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            BufferedReader reader;
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             result = new StringBuilder();
-            conn.setRequestMethod("GET");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            connection.setRequestMethod("GET");
+            connection.setDoInput(true);
+            connection.setDoOutput(true);
+            connection.setUseCaches(false);
+
+            try{
+                reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            } catch (IOException e) {
+                reader = new BufferedReader(new InputStreamReader(connection.getErrorStream()));
+            }
+
             String singleLine;
             while ((singleLine = reader.readLine()) != null) {
                 result.append(singleLine);
@@ -156,10 +151,20 @@ public class HTTPRequestHelper {
 
     private static void sendDELETERequest(URL url) {
         try {
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            BufferedReader reader;
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             result = new StringBuilder();
-            conn.setRequestMethod("DELETE");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            connection.setRequestMethod("DELETE");
+            connection.setDoInput(true);
+            connection.setDoOutput(true);
+            connection.setUseCaches(false);
+
+            try{
+                reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            } catch (IOException e) {
+                reader = new BufferedReader(new InputStreamReader(connection.getErrorStream()));
+            }
+
             String singleLine;
             while ((singleLine = reader.readLine()) != null) {
                 result.append(singleLine);
@@ -189,4 +194,33 @@ public class HTTPRequestHelper {
         }
     }
 
+    public static void writeOutput(HttpURLConnection conn, String body) throws IOException {
+        OutputStreamWriter writer = null;
+
+        conn.setRequestProperty("Content-Type", "application/raw");
+        conn.setRequestProperty("Content-Length", String.valueOf(body.length()));
+
+        try {
+            writer = new OutputStreamWriter(conn.getOutputStream());
+        } catch (UnknownHostException e){
+            System.out.println("Cannot connect to server. Check your internet connection.");
+            System.exit(1);
+        }
+        writer.write(body);
+        writer.flush();
+        writer.close();
+    }
+
+    public static void readResponse(HttpURLConnection conn) throws IOException {
+        BufferedReader reader;
+        try{
+            reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+        } catch (IOException e) {
+            reader = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
+        }
+        for (String line; (line = reader.readLine()) != null; ) {
+            System.out.println(line);
+        }
+        reader.close();
+    }
 }
