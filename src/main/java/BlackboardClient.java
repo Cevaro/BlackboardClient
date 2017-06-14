@@ -21,9 +21,9 @@ public class BlackboardClient {
         boolean exitFlag = false;
 
 
-/*:***********************************************************************************************************
- *                             Argument determination                                                        *
- ***********************************************************************************************************:*/
+        /*:***********************************************************************************************************
+        *                             Argument determination                                                        *
+        ***********************************************************************************************************:*/
         //if there are no arguments we can cancel early and print the help text
         if (args.length == 0) {
             printHelp();
@@ -169,9 +169,9 @@ public class BlackboardClient {
             }
         }
 
-/*:***********************************************************************************************************
- *                             Argument evaluation                                                           *
- **********************************************************************************************************:*/
+        /*:*********************************************************************************************************
+        *                             Argument evaluation                                                          *
+        **********************************************************************************************************:*/
         //if no server address is specified: choose the default server address
         if (serverAddress == null) {
             serverAddress = defaultServerAddress;
@@ -180,32 +180,36 @@ public class BlackboardClient {
         if (mode == null) {
             System.err.println("No action specified.");
             exitFlag = true;
+            //check if given mode is valid
         } else if (!(mode.equals("CREATE") || mode.equals("DISPLAY") || mode.equals("READ") || mode.equals("CLEAR")
                 || mode.equals("DELETE") || mode.equals("STATUS") || mode.equals("SHOW"))) {
             System.out.println("Invalid action. --h for help.");
             exitFlag = true;
         }
 
+        //print results of argument evaluation
         System.out.println("Server address: " + serverAddress);
         System.out.println("Mode: " + mode);
         System.out.println("Boardname: " + boardname);
         System.out.println("Message: " + message);
 
+        //check for invalid input
         if (exitFlag) {
             System.out.println("\nInvalid input format. --h for help.");
             System.exit(0);
-        }
-        if (boardname.length() > 64) {
+        } else if (boardname.length() > 64) {
             System.out.println("\nThe given boardname exceeds the limit of 64 characters.");
             System.exit(0);
-        }
-        if (message.length() > 255) {
+        } else if (message.length() > 255) {
             System.out.println("\nThe given message exceeds the limit of 255 characters.");
+            System.exit(0);
+        } else if (mode.equals("DISPLAY") && message.isEmpty()) {
+            System.out.println("\nNo message to be displayed.");
             System.exit(0);
         } else {
             System.out.println("\nAccessing server...");
-        }
 
+        }
 
         //HTTP request
         HTTPRequestHelper.startRequest(mode, serverAddress, boardname, message);
@@ -234,6 +238,6 @@ public class BlackboardClient {
         System.out.println("--delete,-de <boardname>: Delete the entirety of board <boardname>");
         System.out.println("--status <boardname>: Display the status of the board <boardname>");
         System.out.println("--show,-sh: Display the list of all available blackboards");
-
+        System.exit(0);
     }
 }

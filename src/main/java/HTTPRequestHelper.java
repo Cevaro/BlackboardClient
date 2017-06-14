@@ -6,21 +6,22 @@ import org.json.simple.parser.ParseException;
 import java.io.*;
 import java.net.*;
 
-/**
+/*
  * Created by D062299 on 03.06.2017.
  */
-public class HTTPRequestHelper {
+class HTTPRequestHelper {
 
     private static StringBuilder result;
     private static String usageMode;
 
-    public static void startRequest(String mode, String serverAddress, String boardname, String message) throws IOException {
+    static void startRequest(String mode, String serverAddress, String boardname, String message) throws IOException {
         usageMode = mode;
-/*:***********************************************************************************************************
- *                             Create connection                                                             *
- ***********************************************************************************************************:*/
+        /*:**********************************************************************************************************
+        *                             Create connection                                                             *
+        ***********************************************************************************************************:*/
         //get target URL and create connection
         try {
+            boardname = boardname.replaceAll(" ", "%20");
             switch (usageMode) {
                 case "CREATE":
                     URL apiUrl = new URL(serverAddress + "/create_blackboard");
@@ -69,8 +70,6 @@ public class HTTPRequestHelper {
 
             writeOutput(connection, body);
             readResponse(connection);
-        } catch (ProtocolException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -86,10 +85,6 @@ public class HTTPRequestHelper {
 
             writeOutput(connection, body);
             readResponse(connection);
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        } catch (ProtocolException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -105,7 +100,7 @@ public class HTTPRequestHelper {
             connection.setUseCaches(false);
             result = new StringBuilder();
 
-            try{
+            try {
                 reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
             } catch (IOException e) {
                 reader = new BufferedReader(new InputStreamReader(connection.getErrorStream()));
@@ -132,7 +127,7 @@ public class HTTPRequestHelper {
             connection.setDoOutput(true);
             connection.setUseCaches(false);
 
-            try{
+            try {
                 reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
             } catch (IOException e) {
                 reader = new BufferedReader(new InputStreamReader(connection.getErrorStream()));
@@ -156,10 +151,11 @@ public class HTTPRequestHelper {
             result = new StringBuilder();
             connection.setRequestMethod("DELETE");
             connection.setDoInput(true);
-            connection.setDoOutput(true);
+            connection.setDoOutput(false);
             connection.setUseCaches(false);
 
-            try{
+
+            try {
                 reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
             } catch (IOException e) {
                 reader = new BufferedReader(new InputStreamReader(connection.getErrorStream()));
@@ -176,25 +172,7 @@ public class HTTPRequestHelper {
         }
     }
 
-    private static void printResult(StringBuilder input, String mode) throws ParseException {
-        switch (mode) {
-            case "SHOW":
-                System.out.println("The following blackboards were returned:");
-                JSONParser parser = new JSONParser();
-                JSONArray content = (JSONArray) parser.parse(input.toString());
-                JSONObject jsonBlackboard = new JSONObject();
-                for (int i = 0; i < content.size(); i++) {
-                    jsonBlackboard = (JSONObject) content.get(i);
-                    System.out.println(jsonBlackboard.get("name"));
-                    System.out.println(jsonBlackboard.get("message") + "\n");
-                }
-                break;
-            default:
-                System.out.println(input.toString());
-        }
-    }
-
-    public static void writeOutput(HttpURLConnection conn, String body) throws IOException {
+    private static void writeOutput(HttpURLConnection conn, String body) throws IOException {
         OutputStreamWriter writer = null;
 
         conn.setRequestProperty("Content-Type", "application/raw");
@@ -202,7 +180,7 @@ public class HTTPRequestHelper {
 
         try {
             writer = new OutputStreamWriter(conn.getOutputStream());
-        } catch (UnknownHostException e){
+        } catch (UnknownHostException e) {
             System.out.println("Cannot connect to server. Check your internet connection.");
             System.exit(1);
         }
@@ -211,9 +189,9 @@ public class HTTPRequestHelper {
         writer.close();
     }
 
-    public static void readResponse(HttpURLConnection conn) throws IOException {
+    private static void readResponse(HttpURLConnection conn) throws IOException {
         BufferedReader reader;
-        try{
+        try {
             reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
         } catch (IOException e) {
             reader = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
@@ -222,5 +200,24 @@ public class HTTPRequestHelper {
             System.out.println(line);
         }
         reader.close();
+    }
+
+
+    private static void printResult(StringBuilder input, String mode) throws ParseException {
+        switch (mode) {
+            case "SHOW":
+                System.out.println("The following blackboards were returned:");
+                JSONParser parser = new JSONParser();
+                JSONArray content = (JSONArray) parser.parse(input.toString());
+                JSONObject jsonBlackboard = new JSONObject();
+                for (Object aContent : content) {
+                    jsonBlackboard = (JSONObject) aContent;
+                    System.out.println(jsonBlackboard.get("name"));
+                    System.out.println(jsonBlackboard.get("message") + "\n");
+                }
+                break;
+            default:
+                System.out.println(input.toString());
+        }
     }
 }
